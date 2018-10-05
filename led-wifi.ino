@@ -9,6 +9,7 @@ const char* password = "FamilieKrausse";
 // The port to listen for incoming TCP connections
 #define LISTEN_PORT 80
 
+// The used links
 #define FAVICON "/favicon.ico"
 #define INDEX "/index.html"
 #define CSS "/styles.css"
@@ -19,6 +20,8 @@ WiFiServer server(LISTEN_PORT);
 
 //ESP32 LED
 int esp32LED = 1;
+
+bool blink = false;
 
 //Function Declaration
 void initializeServer();
@@ -63,8 +66,19 @@ void setup() {
 }
 
 // the loop function runs over and over again forever
-void loop() {
-  delay(1);
+void loop() { 
+
+  if(blink)
+  {
+    Serial.println("Blink ON.");
+    digitalWrite(esp32LED, HIGH);   // turn the LED on (HIGH is the voltage level)
+    delay(1000);                    // wait for a second
+    digitalWrite(esp32LED, LOW);
+    Serial.println("Blink OFF.");    // turn the LED off by making the voltage LOW
+    delay(1000);                    // wait for a second   
+  }
+  else
+    delay(1);
 }
 
 bool initializeSPIFFS(){
@@ -191,17 +205,18 @@ void handleRequest(WiFiClient& client){
   if(header.indexOf("GET /color") >= 0)
   {
     Serial.println("Color checked.");
-    prepareHTTPMessage(client, 200);
+    blink = !blink;
+    prepareHTTPMessage(client, 200, INDEX);
   }
   else if(header.indexOf("GET /brightness") >= 0)
   {
     Serial.println("Brightness checked.");
-    prepareHTTPMessage(client, 200);
+    prepareHTTPMessage(client, 200, INDEX);
   }
   else if(header.indexOf("GET /time") >= 0)
   {
     Serial.println("Time checked.");
-    prepareHTTPMessage(client, 200);
+    prepareHTTPMessage(client, 200), INDEX;
   }
   else if(header.indexOf("GET /styles.css") >= 0)
   {
@@ -258,12 +273,12 @@ void prepareHTTPMessage(WiFiClient& client, unsigned code, const String& filenam
   client.println(" charset=utf-8");
 
   // Get File and add header
-  File file = getFile(filename, FILE_READ);
+  File file = filename.length() > 0 ? getFile(filename, FILE_READ) : File();
   if(file && file.size() > 0)
   {
     // Add Content length
     client.print("Content-Length: ");
-    client.println(String((unsigned)file.size() + 1)); //Need to add 1 to the content size
+    client.println(String(file.size() + 1)); //Need to add 1 to the content size
   }
 
   // Msg Closed
